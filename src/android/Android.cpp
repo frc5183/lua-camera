@@ -1,5 +1,29 @@
 #include <jni.h>
 #include <dlfcn.h>
+#include <string>
+#include <sstream>
+#include <Android.h>
+static std::string replace(const std::string &str, const std::string &from, const std::string &to)
+{
+	std::stringstream ss;
+	size_t oldpos = 0;
+
+	while (true)
+	{
+		size_t pos = str.find(from, oldpos);
+
+		if (pos == std::string::npos)
+		{
+			ss << str.substr(oldpos);
+			break;
+		}
+
+		ss << str.substr(oldpos, pos - oldpos) << to;
+		oldpos = pos + from.length();
+	}
+
+	return ss.str();
+}
 static jstring newStringUTF(JNIEnv *env, const std::string &str)
 {
     // We want std::string that contains null byte, hence length of 1.
@@ -10,11 +34,11 @@ static jstring newStringUTF(JNIEnv *env, const std::string &str)
     return jstr;
 }
 
-static std:string getStringUTF(JNIEnv *env, jstring str)
+static std::string getStringUTF(JNIEnv *env, jstring str)
 {
-    static std:string null("", 1)
+    static std::string null("", 1);
     const char *c = env->GetStringUTFChars(str, nullptr);
-    std:string result = replace(c, "\xC0\x80", null);
+    std::string result = replace(c, "\xC0\x80", null);
     env->ReleaseStringUTFChars(str, c);
     return result;
 };
@@ -29,24 +53,23 @@ Android::Android()
     SDL_AndroidGetActivity = (decltype(SDL_AndroidGetActivity)) dlsym(RTLD_DEFAULT, "SDL_AndroidGetActivity");
     cameraClass = getCameraClass();
     JNIEnv *env = SDL_AndroidGetJNIEnv();
-    jmothodID constructor = env->GetMethodId(cameraClass, "<init>", "()V");
-    camera = env->NewObject(cameraClass, constructor)
+    jmethodID constructor = env->GetMethodID(cameraClass, "<init>", "()V");
+    camera = env->NewObject(cameraClass, constructor);
 }
 
-std:string Android::getSnap() {
+std::string Android::getSnap() {
     JNIEnv *env = SDL_AndroidGetJNIEnv();
-    jmethodID getPicture = env->GetMethodId(cameraClass, "getPicture", "()Ljava/lang/String;\"");
-    jstring = env->CallStringMethod(camera, getPicture);
-    std:string out = env->getStringUTF(jstring);
-    env->DeleteLocalRef(jstring)
-    env->DeleteLocalRef(getPicture)
+    jmethodID getPicture = env->GetMethodID(cameraClass, "getPicture", "()Ljava/lang/String;\"");
+    jstring str=(jstring)  env->CallObjectMethod(camera, getPicture);
+    std::string out = getStringUTF( env, str);
+    env->DeleteLocalRef(str);
     return out;
 };
+;
 void Android::activate() {
-    JNIEnv *env = SDL_AndroidGetJNIENv();
-    jmethodID activate = env->GetMethodId(cameraClass, "activate", "()V");
-    env->CallVoidMethod(camera);
-    env->DeleteLocalRef(activate)
+    JNIEnv *env = SDL_AndroidGetJNIEnv();
+    jmethodID activate = env->GetMethodID(cameraClass, "activate", "()V");
+    env->CallVoidMethod(camera, activate);
 }
 jclass Android::getCameraClass() const {
     JNIEnv *env = SDL_AndroidGetJNIEnv();

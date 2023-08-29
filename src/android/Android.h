@@ -1,13 +1,11 @@
-#prama once
-
 #include <jni.h>
-
+#include <string>
 class Android
 {
 public:
-    AndroidClient();
-    bool valid const override;
-    std:string getSnap();
+    Android();
+    void activate();
+    std::string getSnap();
 private:
     jclass cameraClass;
     jobject camera;

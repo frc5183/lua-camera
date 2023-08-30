@@ -2,40 +2,42 @@
 #include <dlfcn.h>
 #include <string>
 #include <sstream>
-#include <Android.h>
-static std::string replace(const std::string &str, const std::string &from, const std::string &to)
-{
-	std::stringstream ss;
-	size_t oldpos = 0;
+#include "Android.h"
 
-	while (true)
-	{
-		size_t pos = str.find(from, oldpos);
+#include <android/log.h>
+#define LOG(...) __android_log_print(ANDROID_LOG_VERBOSE, "LuaCamera", __VA_ARGS__);
 
-		if (pos == std::string::npos)
-		{
-			ss << str.substr(oldpos);
-			break;
-		}
+static std::string replace(const std::string &str, const std::string &from, const std::string &to) {
+    std::stringstream ss;
+    size_t oldpos = 0;
 
-		ss << str.substr(oldpos, pos - oldpos) << to;
-		oldpos = pos + from.length();
+    while (true) {
+    	size_t pos = str.find(from, oldpos);
+	
+    	if (pos == std::string::npos) {
+	    ss << str.substr(oldpos);
+	    break;
 	}
 
-	return ss.str();
+	ss << str.substr(oldpos, pos - oldpos) << to;
+	oldpos = pos + from.length();
+    }
+
+    return ss.str();
 }
-static jstring newStringUTF(JNIEnv *env, const std::string &str)
-{
+static jstring newStringUTF(JNIEnv *env, const std::string &str) {
     // We want std::string that contains null byte, hence length of 1.
     static std::string null("", 1);
-
     std::string newStr = replace(str, null, "\xC0\x80");
     jstring jstr = env->NewStringUTF(newStr.c_str());
     return jstr;
 }
 
-static std::string getStringUTF(JNIEnv *env, jstring str)
-{
+static std::string getStringUTF(JNIEnv *env, jstring str) {
+    if (str == nullptr) {
+	std::string sttr;
+	return sttr;
+    }
     static std::string null("", 1);
     const char *c = env->GetStringUTFChars(str, nullptr);
     std::string result = replace(c, "\xC0\x80", null);
@@ -44,9 +46,7 @@ static std::string getStringUTF(JNIEnv *env, jstring str)
 };
 
 
-Android::Android()
-        : SDL_AndroidGetJNIEnv(nullptr)
-{
+Android::Android() : SDL_AndroidGetJNIEnv(nullptr) {
     // Look for SDL_AndroidGetJNIEnv
     SDL_AndroidGetJNIEnv = (decltype(SDL_AndroidGetJNIEnv)) dlsym(RTLD_DEFAULT, "SDL_AndroidGetJNIEnv");
     // Look for SDL_AndroidGetActivity
@@ -59,18 +59,19 @@ Android::Android()
 
 std::string Android::getSnap() {
     JNIEnv *env = SDL_AndroidGetJNIEnv();
-    jmethodID getPicture = env->GetMethodID(cameraClass, "getPicture", "()Ljava/lang/String;\"");
-    jstring str=(jstring)  env->CallObjectMethod(camera, getPicture);
-    std::string out = getStringUTF( env, str);
+    jmethodID getPicture = env->GetMethodID(cameraClass, "getPicture", "()Ljava/lang/String;");
+    jstring str = (jstring) env->CallObjectMethod(camera, getPicture);
+    std::string out = getStringUTF(env, str);
     env->DeleteLocalRef(str);
     return out;
 };
-;
+
 void Android::activate() {
     JNIEnv *env = SDL_AndroidGetJNIEnv();
     jmethodID activate = env->GetMethodID(cameraClass, "activate", "()V");
     env->CallVoidMethod(camera, activate);
 }
+
 jclass Android::getCameraClass() const {
     JNIEnv *env = SDL_AndroidGetJNIEnv();
     jclass classLoaderClass = env->FindClass("java/lang/ClassLoader");
@@ -91,4 +92,5 @@ jclass Android::getCameraClass() const {
     env->DeleteLocalRef(cameraClassName);
     env->DeleteLocalRef(activity);
     env->DeleteLocalRef(classLoaderClass);
+    return cameraClass;
 };

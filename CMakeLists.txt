@@ -12,7 +12,7 @@ add_library(camera SHARED
 	src/android/Android.cpp
 )
 set_target_properties(camera PROPERTIES
-	OUTPUT_NAME libcamera
+	OUTPUT_NAME camera
 	PREFIX ""
 	CXX_STANDARD 11
 )
@@ -21,6 +21,5 @@ target_include_directories(camera PRIVATE
 	${CMAKE_CURRENT_SOURCE_DIR}/src/android
 )
 target_link_libraries(camera PRIVATE
-	luajit
+	luajit android log love
 )
-

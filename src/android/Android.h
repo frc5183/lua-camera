@@ -11,6 +11,5 @@ private:
     jobject camera;
     JNIEnv *(*SDL_AndroidGetJNIEnv)();
     jobject (*SDL_AndroidGetActivity)();
-
     jclass getCameraClass() const;
 };

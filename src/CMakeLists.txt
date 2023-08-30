@@ -8,6 +8,7 @@ include_directories (
 	${CMAKE_CURRENT_BINARY_DIR}
 )
 
+
 ### Compiler-specific flags
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
 	add_compile_options ("-fvisibility=hidden")

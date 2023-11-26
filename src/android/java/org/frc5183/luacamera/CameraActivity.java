@@ -11,10 +11,15 @@ import android.util.Log;
 import org.love2d.android.*;
 import java.io.ByteArrayOutputStream;
 
-public class CameraActivity {
-    private static Activity sitch;
+public class CameraActivity implements GameActivity.Adapter {
+    private static int code;
+    Activity sitch;
     private static String picture;
-
+    public CameraActivity() {
+        super();
+        code = GameActivity.registerAdapter(this);
+        Log.d("LuaCamera", "Loading CameraActivity");
+    }
     public static void setPicture(String pic) {
         picture = pic;
     }
@@ -24,24 +29,22 @@ public class CameraActivity {
     }
 
     private void activate() {
-        sitch = GameActivity.getGameActivity();
+        if (sitch==null) {
+            sitch = GameActivity.getGameActivity();
+        }
         Intent camera_intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        sitch.startActivityForResult(camera_intent, 123);
+        sitch.startActivityForResult(camera_intent, code);
     }
-
-    public CameraActivity() {
-        Log.d("LuaCamera", "Loading CameraActivity");
+    public void handle(int resultCode, Intent data) {
+        onActivityResult(code, resultCode, data);
     }
-
-    public static void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == 123) {
-            Bitmap photo = (Bitmap) data.getExtras().get("data");
-
-            if (photo != null) {
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                photo.compress(Bitmap.CompressFormat.PNG, 100, baos);
-                picture = Base64.encodeToString(baos.toByteArray(), Base64.DEFAULT);
-            }
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        Bitmap photo = (Bitmap) data.getExtras().get("data");
+        if (photo!=null) {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            photo.compress(Bitmap.CompressFormat.PNG, 100, baos);
+            byte[] bytes = baos.toByteArray();
+            picture = Base64.encodeToString(bytes, Base64.DEFAULT);
         }
     }
 }
